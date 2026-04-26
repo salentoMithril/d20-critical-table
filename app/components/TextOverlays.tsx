@@ -48,6 +48,9 @@ function FadeSlot({ active, children }: { active: boolean; children: ReactNode }
       style={{
         opacity: active ? 1 : 0,
         transition: `opacity ${FADE_MS}ms ease`,
+        // Solo lo slot attivo riceve pointer events: i link dei badge/footer
+        // della sezione 5 funzionano, e niente click fantasma durante il fade.
+        pointerEvents: active ? "auto" : "none",
       }}
       aria-hidden={!active}
     >
@@ -174,7 +177,7 @@ function WelcomeTitle() {
             maxWidth: "32ch",
           }}
         >
-          Ti aiuteremo ad organizzare il tuo prossimo tavolo di gioco!
+          Trova un tavolo di gioco vicino a te. Anche stasera, se vuoi.
         </span>
       </h1>
     </div>
@@ -234,18 +237,17 @@ function RollSection() {
       <div className="absolute top-12 md:top-20 left-8 sm:left-14 md:left-24 lg:left-32 max-w-[36ch]">
         <span aria-hidden style={accentBar("left")} />
         <p style={body}>
-          Crea e cerca eventi{" "}
-          <span style={{ ...exo800, color: SMOKE }}>privati e pubblici</span>{" "}
-          nei tuoi paraggi, allarga la tua cerchia di amici e rappresenta una{" "}
+          Eventi <span style={{ ...exo800, color: SMOKE }}>privati</span> per il tuo party.{" "}
+          <span style={{ ...exo800, color: SMOKE }}>Pubblici</span> per allargarlo. Quello che non trovi nei tuoi paraggi,{" "}
           <span
             style={{
               ...exo800,
               ...gradientText(CRIMSON_GRADIENT, wordmarkShadow("236,79,61")),
             }}
           >
-            community sana e speciale
+            lo organizzi tu
           </span>
-          !
+          .
         </p>
 
         <div style={{ marginTop: "1.5rem" }}>
@@ -290,17 +292,16 @@ function RollSection() {
       <div className="absolute top-12 md:top-20 right-12 sm:right-20 md:right-28 lg:right-40 max-w-[36ch]">
         <span aria-hidden style={accentBar("right")} />
         <p style={{ ...body, textAlign: "right" }}>
-          È il miglior luogo dove trovare{" "}
-          <span
-            style={{
-              ...exo800,
-              ...gradientText(CRIMSON_GRADIENT, wordmarkShadow("236,79,61")),
-            }}
-          >
-            tanti altri appassionati come te
+          I giocatori della tua zona ci sono già.{" "}
+          <span style={exo800}>
+            <span style={gradientText(STEEL_GRADIENT, wordmarkShadow("74,83,102"))}>
+              Critical
+            </span>
+            <span style={gradientText(CRIMSON_GRADIENT, wordmarkShadow("236,79,61"))}>
+              Table
+            </span>
           </span>{" "}
-          e creare{" "}
-          <span style={{ ...exo800, color: SMOKE }}>esperienze indimenticabili</span>!
+          li mette in un posto solo.
         </p>
 
         <div style={{ marginTop: "1.5rem", textAlign: "right" }}>
@@ -405,7 +406,7 @@ function PitchText() {
               Table
             </span>
           </span>{" "}
-          è la soluzione.
+          ti rimette al tavolo.
         </p>
       </div>
     </div>
@@ -502,8 +503,8 @@ function TagsExplainer() {
         </ul>
 
         <p style={bodyStyle}>
-          Niente classifiche di vittorie, niente ego trip. Si premia{" "}
-          <span style={strongInline}>come ti porti al tavolo</span> — e a quanto pare contano più le pizze portate dei dadi tirati.
+          Niente classifiche di vittorie. Si premia{" "}
+          <span style={strongInline}>come ti porgi al tavolo</span> — e a quanto pare contano più le pizze portate dei dadi tirati.
         </p>
       </div>
     </div>
@@ -609,11 +610,95 @@ function DownloadCTA() {
 
 // --- Sezione 5 (allarga il party) -------------------------------------------
 
+function AppleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.523 12.073c-.026-2.586 2.107-3.83 2.205-3.892-1.205-1.762-3.078-2.003-3.747-2.027-1.594-.162-3.114.939-3.924.939-.81 0-2.06-.916-3.39-.892-1.745.026-3.353 1.013-4.252 2.575-1.812 3.142-.464 7.79 1.302 10.341.864 1.249 1.892 2.65 3.244 2.6 1.301-.052 1.793-.843 3.366-.843 1.572 0 2.018.843 3.392.815 1.4-.024 2.286-1.273 3.144-2.524 1.989-.59 1.371-2.873 1.405-2.96-.031-.014-2.703-1.038-2.732-4.114zm-2.594-7.555c.713-.866 1.196-2.066 1.064-3.265-1.029.042-2.275.685-3.012 1.547-.661.764-1.241 1.989-1.085 3.165 1.149.089 2.32-.583 3.033-1.447z" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+      <path d="M3.5 2.5v19l16-9.5z" fill="#34A853" />
+      <path d="M3.5 2.5l16 9.5L9 17.5z" fill="#FBBC04" />
+      <path d="M3.5 21.5l16-9.5L9 6.5z" fill="#EA4335" />
+      <path d="M3.5 2.5L9 6.5v11l-5.5 4z" fill="#4285F4" />
+    </svg>
+  );
+}
+
+// Badge "store-style": pill scura con icona, eyebrow piccolo + label grosso.
+// Ricalca il layout dei badge ufficiali Apple/Google ma con palette del sito.
+// `href` è placeholder ("#") finché non ci sono URL veri degli store.
+function StoreBadge({
+  icon,
+  eyebrow,
+  label,
+  href,
+  ariaLabel,
+}: {
+  icon: ReactNode;
+  eyebrow: string;
+  label: string;
+  href: string;
+  ariaLabel: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={ariaLabel}
+      className="group inline-flex items-center gap-3 rounded-xl pl-3.5 pr-5 py-2.5 transition-all duration-300 hover:-translate-y-[2px]"
+      style={{
+        background: "linear-gradient(180deg, #1B1F27 0%, #0A0C12 100%)",
+        border: "1px solid rgba(255,255,255,0.14)",
+        boxShadow: [
+          "0 10px 24px -10px rgba(0,0,0,0.6)",
+          "inset 0 1px 0 rgba(255,255,255,0.08)",
+        ].join(", "),
+        color: SMOKE,
+        textDecoration: "none",
+      }}
+    >
+      <span className="grid place-items-center">{icon}</span>
+      <span className="flex flex-col items-start leading-none">
+        <span
+          style={{
+            fontFamily: "var(--font-ibm-plex-sans), system-ui, sans-serif",
+            fontSize: "0.62rem",
+            letterSpacing: "0.06em",
+            fontWeight: 400,
+            opacity: 0.78,
+            marginBottom: "0.22em",
+          }}
+        >
+          {eyebrow}
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-exo2), system-ui, sans-serif",
+            fontSize: "1.05rem",
+            fontWeight: 600,
+            letterSpacing: "-0.005em",
+          }}
+        >
+          {label}
+        </span>
+      </span>
+    </a>
+  );
+}
+
 function PartyTitle() {
   // Dado principale rimpicciolito al centro (gestito in D20Scene), 4 dadi
   // satellite agli angoli. Titolo in alto-centro per non collidere con i dadi.
+  // mt-auto sul gruppo bottom spinge badge + footer in fondo allo schermo
+  // lasciando i dadi liberi nello spazio centrale.
   return (
-    <div className="h-full flex flex-col items-center px-8 pt-16 sm:pt-20 md:pt-24">
+    <div className="h-full flex flex-col items-center px-8 pt-16 sm:pt-20 md:pt-24 pb-5">
       <h2
         style={{
           fontFamily: "var(--font-exo2), system-ui, sans-serif",
@@ -626,9 +711,9 @@ function PartyTitle() {
           textAlign: "center",
         }}
       >
-        Allarga{" "}
+        Più gente,{" "}
         <span style={gradientText(CRIMSON_GRADIENT, wordmarkShadow("236,79,61"))}>
-          il party!
+          più tavoli.
         </span>
       </h2>
       <p
@@ -647,6 +732,68 @@ function PartyTitle() {
       >
         I migliori tavoli sono quelli pieni — porta gli amici, gli amici degli amici, e i loro dadi.
       </p>
+
+      <div className="mt-auto w-full flex flex-col items-center gap-5 sm:gap-6">
+        <div className="flex flex-wrap justify-center gap-2.5 sm:gap-3">
+          <StoreBadge
+            icon={<AppleIcon />}
+            eyebrow="Scarica su"
+            label="App Store"
+            href="#"
+            ariaLabel="Scarica CriticalTable su App Store"
+          />
+          <StoreBadge
+            icon={<PlayIcon />}
+            eyebrow="Disponibile su"
+            label="Google Play"
+            href="#"
+            ariaLabel="Scarica CriticalTable su Google Play"
+          />
+        </div>
+
+        <footer className="flex flex-col items-center gap-2.5">
+          <span
+            aria-hidden
+            style={{
+              display: "block",
+              width: "3rem",
+              height: "1px",
+              background:
+                "linear-gradient(90deg, transparent 0%, rgba(236,79,61,0.55) 50%, transparent 100%)",
+            }}
+          />
+          <p
+            style={{
+              fontFamily: "var(--font-ibm-plex-sans), system-ui, sans-serif",
+              fontSize: "clamp(0.72rem, 0.9vw, 0.82rem)",
+              letterSpacing: "0.015em",
+              textAlign: "center",
+              color: "rgba(230,232,238,0.6)",
+              textShadow: "0 2px 8px rgba(0,0,0,0.55)",
+              margin: 0,
+            }}
+          >
+            <span style={{ color: SMOKE, fontWeight: 600, opacity: 0.9 }}>
+              CriticalTable
+            </span>
+            <span style={{ margin: "0 0.55rem", opacity: 0.45 }}>·</span>
+            Made with a{" "}
+            <span style={{ color: SMOKE, fontWeight: 700 }}>nat20</span> by{" "}
+            <a
+              href="#"
+              rel="noopener noreferrer"
+              style={{
+                color: "#EC4F3D",
+                fontWeight: 700,
+                textDecoration: "none",
+                letterSpacing: "0.02em",
+              }}
+            >
+              DEV.ERU
+            </a>
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }

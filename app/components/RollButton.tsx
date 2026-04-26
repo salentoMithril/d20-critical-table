@@ -54,17 +54,23 @@ export default function RollButton() {
           className="relative px-9 sm:px-12 md:px-16 pt-7 md:pt-9 pb-8 md:pb-9 overflow-hidden"
           style={{
             borderRadius: "26px",
-            // Tinte diagonali asimmetriche: highlight in alto-sinistra,
-            // ombra fredda in basso-destra. Il blur fa il resto.
+            // Base scura affidabile: il pannello deve restare leggibile su
+            // qualsiasi variante (Confetto rosa, Metallico argento, Tropicale
+            // verde/mango). Highlight bianco residuo solo in alto-sinistra
+            // come "rifrazione di vetro", il resto si appoggia su un fondo
+            // scuro che maschera i colori vivaci sottostanti.
             background:
-              "linear-gradient(140deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.04) 45%, rgba(20,24,32,0.22) 100%)",
-            backdropFilter: "blur(22px) saturate(160%)",
-            WebkitBackdropFilter: "blur(22px) saturate(160%)",
-            border: "1px solid rgba(255,255,255,0.14)",
+              "linear-gradient(140deg, rgba(255,255,255,0.10) 0%, rgba(15,18,25,0.45) 45%, rgba(8,10,14,0.60) 100%)",
+            // Backdrop: blur generoso ma niente saturate>100% (amplificherebbe
+            // i pastelli). Brightness <1 dima uniformemente la silhouette del
+            // dado dietro, così pink/silver/mango non sfondano il pannello.
+            backdropFilter: "blur(20px) saturate(105%) brightness(0.78)",
+            WebkitBackdropFilter: "blur(20px) saturate(105%) brightness(0.78)",
+            border: "1px solid rgba(255,255,255,0.16)",
             boxShadow: [
               "0 30px 80px -22px rgba(0,0,0,0.7)",
               "inset 0 1px 0 rgba(255,255,255,0.22)",
-              "inset 0 -1px 0 rgba(0,0,0,0.30)",
+              "inset 0 -1px 0 rgba(0,0,0,0.35)",
             ].join(", "),
           }}
         >
@@ -100,7 +106,7 @@ export default function RollButton() {
                 textShadow: "0 2px 8px rgba(0,0,0,0.6)",
               }}
             >
-              {isRetry ? "Una mano non basta mai." : "Come andrà il prossimo evento?"}
+              {isRetry ? "Una mano non basta mai." : "Che tipo di compagno di tavolo sei?"}
             </p>
             <p
               style={{
