@@ -6,33 +6,55 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { PALETTE } from "@/app/lib/palette";
 import { useSceneState } from "@/app/lib/sceneState";
+import {
+  DICE_VARIANTS,
+  type DiceVariant,
+  type SlotKey,
+  getVariant,
+} from "@/app/lib/diceVariants";
 
-const SLOT_CONFIG: Record<
-  string,
-  { color: string; roughness: number; metalness: number; emissive?: number }
-> = {
-  Iron: { color: PALETTE.Iron, roughness: 0.5, metalness: 0.0 },
-  Onyx: { color: PALETTE.Onyx, roughness: 0.6, metalness: 0.0 },
-  Crimson: { color: PALETTE.Crimson, roughness: 0.3, metalness: 0.1, emissive: 0.08 },
-  Steel: { color: PALETTE.Steel, roughness: 0.35, metalness: 0.4 },
-};
+const SLOT_KEYS: readonly SlotKey[] = ["Iron", "Onyx", "Crimson", "Steel"];
 
-function applyPalette(root: THREE.Object3D) {
+// Clona la scena GLB E i suoi material. `Object3D.clone(true)` deep-clona
+// solo i nodi: i material restano condivisi tra i cloni, quindi ogni dado
+// (main + 4 satelliti) finirebbe con la stessa palette. Cloniamo qui i
+// material — uno per istanza — per poter dipingere ciascun dado
+// indipendentemente.
+function cloneSceneWithMaterials(source: THREE.Object3D): THREE.Object3D {
+  const cloned = source.clone(true);
+  cloned.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    const mat = mesh.material;
+    if (Array.isArray(mat)) {
+      mesh.material = mat.map((m) => m.clone());
+    } else if (mat) {
+      mesh.material = (mat as THREE.Material).clone();
+    }
+  });
+  return cloned;
+}
+
+function applyPalette(root: THREE.Object3D, variant: DiceVariant) {
   root.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
     if (!mesh.isMesh) return;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     const mat = mesh.material as THREE.MeshStandardMaterial;
-    const slotKey = Object.keys(SLOT_CONFIG).find((k) => mat.name.includes(k));
+    const slotKey = SLOT_KEYS.find((k) => mat.name.includes(k));
     if (!slotKey) return;
-    const cfg = SLOT_CONFIG[slotKey];
+    const cfg = variant.slots[slotKey];
     mat.color.set(cfg.color);
     mat.roughness = cfg.roughness;
     mat.metalness = cfg.metalness;
     if (cfg.emissive) {
       mat.emissive = new THREE.Color(cfg.color);
       mat.emissiveIntensity = cfg.emissive;
+    } else {
+      // Pulisci eventuali emissive ereditati dalla variante precedente.
+      mat.emissive = new THREE.Color(0, 0, 0);
+      mat.emissiveIntensity = 0;
     }
     mat.needsUpdate = true;
   });
@@ -131,10 +153,11 @@ const Q_X90 = new THREE.Quaternion().setFromAxisAngle(
 
 function D20() {
   const { scene } = useGLTF("/d20.glb");
-  const cloned = useMemo(() => scene.clone(true), [scene]);
+  const cloned = useMemo(() => cloneSceneWithMaterials(scene), [scene]);
   const groupRef = useRef<THREE.Group>(null);
 
   const rollResult = useSceneState((s) => s.rollResult);
+  const variantId = useSceneState((s) => s.variantId);
   const [faceQuats, setFaceQuats] = useState<FaceQuats | null>(null);
 
   // Stato dell'animazione di lancio. Si arma sul fronte di rollResult
@@ -153,8 +176,8 @@ function D20() {
   }, [rollResult]);
 
   useEffect(() => {
-    applyPalette(cloned);
-  }, [cloned]);
+    applyPalette(cloned, getVariant(variantId));
+  }, [cloned, variantId]);
 
   useEffect(() => {
     fetch("/d20-faces.json")
@@ -270,14 +293,28 @@ function D20() {
 // Spawn-in via scale 0 → cfg.scale quando active === 5; smaltimento simmetrico.
 function PartyDice() {
   const { scene } = useGLTF("/d20.glb");
+  // Ogni satellite ha la sua copia di mesh+material → palette indipendenti.
   const clones = useMemo(
-    () => PARTY_DICE_CONFIG.map(() => scene.clone(true)),
+    () => PARTY_DICE_CONFIG.map(() => cloneSceneWithMaterials(scene)),
     [scene]
+  );
+  const variantId = useSceneState((s) => s.variantId);
+
+  // I satelliti rappresentano "le altre persone": le 4 varianti diverse
+  // da quella scelta dal main D20. Mantenendo l'ordine di DICE_VARIANTS
+  // l'assegnazione satellite→variante è deterministica e cambia solo
+  // quando cambia la selezione (uno swap, non uno shuffle globale).
+  const satelliteVariants = useMemo(
+    () => DICE_VARIANTS.filter((v) => v.id !== variantId),
+    [variantId]
   );
 
   useEffect(() => {
-    clones.forEach(applyPalette);
-  }, [clones]);
+    clones.forEach((c, i) => {
+      const v = satelliteVariants[i];
+      if (v) applyPalette(c, v);
+    });
+  }, [clones, satelliteVariants]);
 
   const refs = useRef<Array<THREE.Group | null>>([]);
 

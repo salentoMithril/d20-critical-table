@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DEFAULT_VARIANT_ID } from "./diceVariants";
 
 type SceneState = {
   active: number;
@@ -13,6 +14,9 @@ type SceneState = {
   hasRolledOnce: boolean;
   startRoll: () => void;
   resetRoll: () => void;
+
+  variantId: string;
+  setVariant: (id: string) => void;
 };
 
 export const useSceneState = create<SceneState>((set, get) => ({
@@ -31,4 +35,7 @@ export const useSceneState = create<SceneState>((set, get) => ({
     });
   },
   resetRoll: () => set({ rollResult: null }),
+
+  variantId: DEFAULT_VARIANT_ID,
+  setVariant: (variantId) => set({ variantId }),
 }));

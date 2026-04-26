@@ -3,6 +3,7 @@ import SnapPager from "./components/SnapPager";
 import SectionNav from "./components/SectionNav";
 import RollButton from "./components/RollButton";
 import TextOverlays from "./components/TextOverlays";
+import DiceVariantPicker from "./components/DiceVariantPicker";
 import { SECTIONS } from "./lib/sections";
 import { PALETTE } from "./lib/palette";
 
@@ -19,6 +20,7 @@ export default function Home() {
       <TextOverlays />
       <SectionNav />
       <RollButton />
+      <DiceVariantPicker />
 
       <SnapPager count={SECTIONS.length}>
         {SECTIONS.map((_, i) => (
