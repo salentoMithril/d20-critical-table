@@ -2,6 +2,7 @@ import D20Scene from "./components/D20Scene";
 import SnapPager from "./components/SnapPager";
 import SectionNav from "./components/SectionNav";
 import RollButton from "./components/RollButton";
+import TextOverlays from "./components/TextOverlays";
 import { SECTIONS } from "./lib/sections";
 import { PALETTE } from "./lib/palette";
 
@@ -15,6 +16,7 @@ export default function Home() {
         <D20Scene />
       </div>
 
+      <TextOverlays />
       <SectionNav />
       <RollButton />
 

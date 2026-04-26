@@ -30,6 +30,18 @@ export default function SnapPager({
       if (cooldown.current) return;
       const state = useSceneState.getState();
       const current = state.active;
+      // Sezione 2: scroll-back con un risultato a video → resetta e RESTA in
+      // sezione 2. La sezione del lancio e' importante e non va abbandonata
+      // dopo un singolo roll. Un secondo scroll-back, dopo il reset, navigherà
+      // normalmente a sezione 1.
+      if (dir === -1 && current === 2 && state.rollResult !== null) {
+        state.resetRoll();
+        cooldown.current = true;
+        window.setTimeout(() => {
+          cooldown.current = false;
+        }, COOLDOWN_MS);
+        return;
+      }
       // Gate: avanzare oltre la fase 2 richiede un lancio.
       if (dir === 1 && current === 2 && state.rollResult === null) return;
       const next = Math.max(0, Math.min(count - 1, current + dir));
