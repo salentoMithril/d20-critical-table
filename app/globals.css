@@ -24,3 +24,207 @@ body {
 body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
+
+/* ────────────────────────────────────────────────────────────────
+   Mobile-only overrides (< sm = 640px). Tutto ciò che vive qui
+   non ha effetto su tablet/desktop: i selettori sono scoped sotto
+   media query, e `!important` serve solo per scavalcare gli inline
+   `style={{ fontSize: "clamp(...)" }}` dei componenti — non perché
+   siano regole "globali" da non poter spegnere.
+   ──────────────────────────────────────────────────────────────── */
+@media (max-width: 639px) {
+  /* WelcomeTitle (sez. 0) — wordmark "CriticalTable" rimpicciolito.
+     Il clamp originale ha min 3.75rem (60px), troppo per viewport
+     stretti: "CriticalTable" sfora i 280px e va a capo male o esce. */
+  .welcome-eyebrow {
+    font-size: 1.05rem !important;
+    line-height: 1 !important;
+  }
+  .welcome-wordmark {
+    font-size: 2.7rem !important;
+    line-height: 0.94 !important;
+    letter-spacing: -0.025em !important;
+  }
+  .welcome-body {
+    font-size: 0.98rem !important;
+    line-height: 1.4 !important;
+    max-width: 28ch !important;
+    margin-top: 0.85em !important;
+  }
+
+  /* Scrim verticale: scurisce solo la fascia centrale (dove vive il
+     testo), lasciando trasparente sopra/sotto. Combinato col leggero
+     blur sul backdrop, smussa la silhouette del dado dietro al copy
+     senza coprirlo. */
+  .welcome-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0) 12%,
+      rgba(17, 19, 24, 0.62) 32%,
+      rgba(17, 19, 24, 0.62) 68%,
+      rgba(17, 19, 24, 0) 88%
+    );
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* PitchText (sez. 1) — 3 domande italiche + risoluzione rimpicciolite.
+     Il min del clamp delle domande (1.3rem) impila troppo verticalmente
+     su portrait; il dado a `offX -0.22` collide col testo a destra. */
+  .pitch-question {
+    font-size: 1.05rem !important;
+    line-height: 1.32 !important;
+  }
+  .pitch-question + .pitch-question {
+    margin-top: 0.9em !important;
+  }
+  .pitch-resolution {
+    font-size: 1.35rem !important;
+    line-height: 1.18 !important;
+  }
+  /* Scrim PitchText: fascia centrale leggermente più larga della
+     welcome perché il blocco testo è più alto (3 domande + closing). */
+  .pitch-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0) 8%,
+      rgba(17, 19, 24, 0.62) 26%,
+      rgba(17, 19, 24, 0.62) 74%,
+      rgba(17, 19, 24, 0) 92%
+    );
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* RollSection mobile (sez. 2) — scrim full-bleed perché la colonna
+     scrollabile copre tutto il viewport. Il dado dietro resta visibile
+     ma sfumato, il testo e i pill TCG/quip restano leggibili a qualsiasi
+     posizione di scroll. */
+  .roll-mobile-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0.50) 0%,
+      rgba(17, 19, 24, 0.65) 30%,
+      rgba(17, 19, 24, 0.65) 70%,
+      rgba(17, 19, 24, 0.50) 100%
+    );
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+  }
+
+  /* TagsExplainer (sez. 3) — eyebrow / headline / body / esempi compatti.
+     Riduzione del ~25% sulla `min` del clamp desktop (es: headline da
+     2rem → 1.5rem, body da 1.05rem → 0.85rem) per allinearsi alla
+     proporzione dei mobile-overrides di Welcome/PitchText. Lo scrim ha
+     band leggermente più larga della pitch-scrim perché il blocco è
+     alto (eyebrow + h2 + body + 3 esempi + body finale). */
+  .tags-eyebrow {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.26em !important;
+    margin-bottom: 0.5rem !important;
+  }
+  .tags-headline {
+    font-size: 1.5rem !important;
+    line-height: 1.08 !important;
+    letter-spacing: -0.02em !important;
+  }
+  .tags-body {
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+  }
+  .tags-headline + .tags-body {
+    margin-top: 1rem !important;
+  }
+  .tags-body + .tags-examples {
+    margin: 0.8rem 0 !important;
+  }
+  .tags-example {
+    font-size: 0.78rem !important;
+    line-height: 1.4 !important;
+    padding-left: 0.72rem !important;
+  }
+  .tags-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0) 5%,
+      rgba(17, 19, 24, 0.62) 22%,
+      rgba(17, 19, 24, 0.62) 78%,
+      rgba(17, 19, 24, 0) 95%
+    );
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* DownloadCTA (sez. 4) — wordmark "CriticalTable" è whiteSpace:nowrap:
+     a 2.8rem (44.8px, min del clamp) misura ~290px e sforerebbe 320px
+     di viewport disponibile su 360px. Riduzione ~25% sulla wordmark
+     porta a ~220px, ben dentro. Stessa proporzione su intro e "e..."
+     così il blocco resta bilanciato. */
+  .dl-intro {
+    font-size: 0.95rem !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.85rem !important;
+    max-width: 24ch !important;
+  }
+  .dl-scarica {
+    font-size: 1.5rem !important;
+    line-height: 0.98 !important;
+  }
+  .dl-wordmark {
+    font-size: 2.1rem !important;
+    line-height: 0.95 !important;
+    letter-spacing: -0.025em !important;
+  }
+  .dl-e {
+    font-size: 1.6rem !important;
+    line-height: 1 !important;
+    margin-top: 0.45em !important;
+  }
+  .dl-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0) 12%,
+      rgba(17, 19, 24, 0.62) 30%,
+      rgba(17, 19, 24, 0.62) 70%,
+      rgba(17, 19, 24, 0) 88%
+    );
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* PartyTitle (sez. 5) — titolo + body. Doppio scrim a banda separata
+     (top + bottom) per non sfumare la fascia centrale dove vivono il
+     dado principale e i 4 satelliti. Riduzione tipografica ~40% sul
+     titolo per un cambio chiaramente visibile su portrait stretto. */
+  .party-title {
+    font-size: 1.55rem !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.02em !important;
+  }
+  .party-body {
+    font-size: 0.82rem !important;
+    line-height: 1.45 !important;
+    margin-top: 0.7rem !important;
+    max-width: 26ch !important;
+  }
+  .party-top-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(17, 19, 24, 0.78) 0%,
+      rgba(17, 19, 24, 0.62) 55%,
+      rgba(17, 19, 24, 0) 100%
+    );
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+  }
+  .party-bottom-scrim {
+    background: linear-gradient(
+      0deg,
+      rgba(17, 19, 24, 0.78) 0%,
+      rgba(17, 19, 24, 0.62) 55%,
+      rgba(17, 19, 24, 0) 100%
+    );
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+  }
+}

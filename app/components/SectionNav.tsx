@@ -13,7 +13,7 @@ export default function SectionNav() {
   return (
     <nav
       aria-label="Section navigation"
-      className="fixed right-6 md:right-10 top-1/2 -translate-y-1/2 z-30 flex flex-col gap-4 pointer-events-auto"
+      className="hidden sm:flex fixed right-6 md:right-10 top-1/2 -translate-y-1/2 z-30 flex-col gap-4 pointer-events-auto"
     >
       {Array.from({ length: count }).map((_, i) => {
         const isActive = i === active;

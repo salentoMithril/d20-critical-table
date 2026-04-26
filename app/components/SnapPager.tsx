@@ -53,21 +53,110 @@ export default function SnapPager({
       }, COOLDOWN_MS);
     };
 
+    // Trova l'antenato più vicino marcato come scroll-interno *che ha
+    // contenuto effettivamente scrollabile*. Su desktop il container
+    // mobile non esiste o non scrolla → ritorna null → handler invariato.
+    // Su mobile, quando il container ha overflow, ritorna l'elemento e
+    // delegheremo lo scroll nativo finché l'utente non raggiunge un bordo.
+    const findScrollableAncestor = (target: EventTarget | null): HTMLElement | null => {
+      const el = (target as Element | null)?.closest?.("[data-internal-scroll]") as HTMLElement | null;
+      if (!el) return null;
+      return el.scrollHeight > el.clientHeight + 1 ? el : null;
+    };
+
+    let touchScroller: HTMLElement | null = null;
+
+    // Anti-spillover: dopo un page-advance via wheel, blocca la rotta
+    // verso lo scroll interno finché il gesto del trackpad/mouse non
+    // si esaurisce. Una "scrollata lunga" emette molti wheel event in
+    // sequenza: senza il lock, dopo che la cooldown del pager scade, i
+    // wheel residui finirebbero a scorrere il contenuto della nuova
+    // sezione. Il lock si rinfresca a ogni wheel event nella finestra,
+    // così resta vivo per tutta la durata dell'inertia, e si chiude
+    // naturalmente dopo POST_WHEEL_GAP_MS di silenzio.
+    const POST_ADVANCE_LOCK_MS = COOLDOWN_MS;
+    const POST_WHEEL_GAP_MS = 200;
+    let scrollLockUntil = 0;
+    const isLocked = (now: number) => now < scrollLockUntil;
+
     const onWheel = (e: WheelEvent) => {
+      const now = performance.now();
+
+      if (isLocked(now)) {
+        // Continuazione del gesto post-advance: divora l'evento, rinfresca
+        // il lock, e lascia che la cooldown del pager gestisca eventuali
+        // advance ulteriori (per chi vuole scrollare di più sezioni in fila).
+        e.preventDefault();
+        scrollLockUntil = Math.max(scrollLockUntil, now + POST_WHEEL_GAP_MS);
+        if (Math.abs(e.deltaY) >= WHEEL_THRESHOLD) {
+          advance(e.deltaY > 0 ? 1 : -1);
+        }
+        return;
+      }
+
+      const scroller = findScrollableAncestor(e.target);
+      if (scroller) {
+        const atTop = scroller.scrollTop <= 0;
+        const atBottom =
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+        // Boundary forwarding: se non siamo al limite nella direzione del
+        // wheel, lascia che lo scroll nativo se ne occupi.
+        if ((e.deltaY < 0 && !atTop) || (e.deltaY > 0 && !atBottom)) {
+          return;
+        }
+        // Al limite: caduta nel pager. preventDefault per simmetria col
+        // ramo standard (evita doppio bounce su iOS).
+      }
       e.preventDefault();
       if (Math.abs(e.deltaY) < WHEEL_THRESHOLD) return;
+
+      const before = useSceneState.getState().active;
       advance(e.deltaY > 0 ? 1 : -1);
+      const after = useSceneState.getState().active;
+      if (after !== before) {
+        scrollLockUntil = now + POST_ADVANCE_LOCK_MS;
+      }
     };
 
     const onTouchStart = (e: TouchEvent) => {
       touchStartY.current = e.touches[0].clientY;
+      // Se siamo nella finestra di lock post-advance, ignora lo scroller
+      // anche se il dito atterra dentro la colonna: questo gesto è
+      // spillover della transizione, non vera intent di scroll.
+      touchScroller = isLocked(performance.now())
+        ? null
+        : findScrollableAncestor(e.target);
     };
     const onTouchMove = (e: TouchEvent) => {
+      // Dentro a uno scroll interno: non bloccare il touchmove, così iOS
+      // può fare il suo scroll nativo (incluso il momentum).
+      if (touchScroller) return;
       e.preventDefault();
     };
     const onTouchEnd = (e: TouchEvent) => {
       const dy = touchStartY.current - e.changedTouches[0].clientY;
-      if (Math.abs(dy) > TOUCH_THRESHOLD) advance(dy > 0 ? 1 : -1);
+      const now = performance.now();
+      const advanceAndLock = (dir: 1 | -1) => {
+        const before = useSceneState.getState().active;
+        advance(dir);
+        const after = useSceneState.getState().active;
+        if (after !== before) {
+          scrollLockUntil = now + POST_ADVANCE_LOCK_MS;
+        }
+      };
+      if (touchScroller) {
+        const atTop = touchScroller.scrollTop <= 0;
+        const atBottom =
+          touchScroller.scrollTop + touchScroller.clientHeight >=
+          touchScroller.scrollHeight - 1;
+        const swipeUp = dy > TOUCH_THRESHOLD; // dito verso l'alto → next
+        const swipeDown = dy < -TOUCH_THRESHOLD; // dito verso il basso → prev
+        if (swipeUp && atBottom) advanceAndLock(1);
+        else if (swipeDown && atTop) advanceAndLock(-1);
+        touchScroller = null;
+        return;
+      }
+      if (Math.abs(dy) > TOUCH_THRESHOLD) advanceAndLock(dy > 0 ? 1 : -1);
     };
 
     const onKey = (e: KeyboardEvent) => {

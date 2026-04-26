@@ -323,14 +323,28 @@ function PartyDice() {
     const t = state.clock.elapsedTime;
     const partyOn = active === 5;
 
+    // Adattamento per viewport stretti (portrait mobile/tablet). I satelliti
+    // sono tarati per aspetto wide a x=±~2: con fov 30° e POSES[5].camZ=6.6
+    // la metà altezza visibile a z=0 è ~1.77, quindi la metà larghezza è
+    // 1.77 * aspect. Su 16:9 (1.78) → 3.15, satelliti a ±2 dentro. Su iPhone
+    // portrait (~0.46) → 0.81, satelliti completamente fuori. Comprimo X
+    // così che ogni satellite stia entro il 78% della metà-larghezza visibile.
+    // Su desktop wide il calcolo restituisce xCompress = 1 → nessun cambio.
+    const aspect = state.size.width / Math.max(state.size.height, 1);
+    const halfFrustumX = 1.77 * aspect;
+    const desiredHalfX = Math.min(2.05, halfFrustumX * 0.78);
+    const xCompress = desiredHalfX / 2.05;
+
     refs.current.forEach((g, i) => {
       if (!g) return;
       const cfg = PARTY_DICE_CONFIG[i];
       // Spin continuo su due assi — varia per dado.
       g.rotation.y += cfg.spinY * delta;
       g.rotation.x += cfg.spinX * delta;
-      // Bobbing: oscillazione verticale leggera attorno alla base.
+      // Posizione: X compressa per portrait; Y bobbing; Z fissa.
+      g.position.x = cfg.basePos[0] * xCompress;
       g.position.y = cfg.basePos[1] + Math.sin(t * 0.6 + cfg.bobPhase) * cfg.bobAmp;
+      g.position.z = cfg.basePos[2];
       // Pop-in / pop-out: scala da 0 al target con damping standard.
       const desired = partyOn ? cfg.scale : 0;
       const newScale = THREE.MathUtils.damp(g.scale.x, desired, DAMP_LAMBDA, delta);

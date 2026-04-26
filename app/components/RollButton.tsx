@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useSceneState } from "@/app/lib/sceneState";
 import { PALETTE } from "@/app/lib/palette";
 import { outcomeFor, type TagTone } from "@/app/lib/rollOutcomes";
@@ -40,6 +40,16 @@ export default function RollButton() {
   // Dopo il primo lancio (e successivo reset via scroll-back), il pannello
   // cambia voce: invita a ritentare la fortuna.
   const isRetry = hasRolledOnce;
+
+  // Mobile post-roll: ogni nuovo lancio (o reset) deve riportare lo scroll
+  // interno della result-card a 0. Su desktop il ref punta a un nodo
+  // display:none → scrollTop = 0 è no-op.
+  const mobileResultScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (mobileResultScrollRef.current) {
+      mobileResultScrollRef.current.scrollTop = 0;
+    }
+  }, [rollResult]);
 
   return (
     <>
@@ -219,16 +229,55 @@ export default function RollButton() {
         </div>
       </div>
 
-      {/* Esito a fianco del dado — il dado post-launch e' shiftato a sinistra
-          (POST_LAUNCH_POSE.offX = -0.22), quindi il blocco vive nella meta'
-          destra del viewport e si allinea verticalmente al centro. */}
+      {/* DESKTOP — esito a fianco del dado. Il dado post-launch e' shiftato
+          a sinistra (POST_LAUNCH_POSE.offX = -0.22), quindi il blocco vive
+          nella meta' destra del viewport e si allinea verticalmente al
+          centro. `hidden sm:flex`: su mobile non rendiamo questo layout. */}
       <div
-        className={`fixed inset-y-0 right-0 z-20 flex items-center pointer-events-none transition-opacity duration-700 ${
+        className={`hidden sm:flex fixed inset-y-0 right-0 z-20 items-center pointer-events-none transition-opacity duration-700 ${
           showResult ? "opacity-100" : "opacity-0"
         }`}
         style={{ width: "50%", paddingLeft: "1.25rem", paddingRight: "1.5rem" }}
       >
         <ResultCard rollResult={rollResult} visible={showResult} />
+      </div>
+
+      {/* MOBILE — esito sulla sponda destra, speculare al desktop ma con
+          larghezza calibrata per portrait. Il dado post-launch è shiftato
+          a sinistra (POST_LAUNCH_POSE.offX = -0.22) → resta visibile a
+          sinistra del pannello.
+
+          Lo scrim è il background dello stesso scroll container: gradient
+          orizzontale "to left" (scuro sul bordo destro, trasparente verso
+          il dado), così il dado non viene mai coperto. Backdrop-blur
+          leggero solo nell'area del container.
+
+          Tipografia calibrata su outcome 6 (~238 char) con larghezza
+          interna ~190px: ~5 righe di story + ~4 di reaction = ~62% del
+          viewport. Outcome 14/18 (~290 char) ~75%. Scroll interno come
+          safety net per device molto piccoli o testo accessibilità. */}
+      <div
+        className={`sm:hidden fixed inset-y-0 right-0 z-20 transition-opacity duration-700 ${
+          showResult ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        style={{ width: "62%" }}
+      >
+        <div
+          ref={mobileResultScrollRef}
+          data-internal-scroll
+          className="absolute inset-0 overflow-y-auto overscroll-contain"
+          style={{
+            background:
+              "linear-gradient(to left, rgba(17,19,24,0.80) 0%, rgba(17,19,24,0.65) 35%, rgba(17,19,24,0.22) 75%, rgba(17,19,24,0) 100%)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            WebkitOverflowScrolling: "touch",
+          } as CSSProperties}
+        >
+          <div className="min-h-full flex flex-col justify-center px-4 py-10">
+            <MobileResultCard rollResult={rollResult} visible={showResult} />
+          </div>
+        </div>
       </div>
     </>
   );
@@ -300,7 +349,7 @@ function ResultCard({
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        {rollResult !== null ? String(rollResult).padStart(2, "0") : ""}
+        {rollResult !== null ? String(rollResult) : ""}
       </div>
       <div
         aria-hidden
@@ -326,6 +375,124 @@ function ResultCard({
         )}
       </p>
       <p style={reactionStyle}>
+        {outcome?.reaction.map((f, i) =>
+          f.tone ? (
+            <Emphasis key={i} tone={f.tone}>
+              {f.text}
+            </Emphasis>
+          ) : (
+            <span key={i}>{f.text}</span>
+          )
+        )}
+      </p>
+    </div>
+  );
+}
+
+// Variante mobile della ResultCard. Layout verticale a sponda destra
+// (parent container la posiziona a destra), testo allineato a sinistra
+// per coerenza con il desktop. Font dimensionato sulla larghezza interna
+// ~190px (62% di 360px - padding): outcome 6 occupa ~62% del viewport
+// portrait. Outcome 14/18/13 (~290 char) restano dentro; in casi estremi
+// si scrolla grazie al `data-internal-scroll` del wrapper.
+function MobileResultCard({
+  rollResult,
+  visible,
+}: {
+  rollResult: number | null;
+  visible: boolean;
+}) {
+  const outcome = rollResult !== null ? outcomeFor(rollResult) : null;
+
+  // Stesso stagger della desktop per coerenza percettiva: numero entra
+  // col wrapper, story dopo 240ms, reaction dopo 420ms.
+  const fadeIn = (delay: number): CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(8px)",
+    transition: `opacity 600ms cubic-bezier(0.2,0.7,0.2,1) ${delay}ms, transform 600ms cubic-bezier(0.2,0.7,0.2,1) ${delay}ms`,
+  });
+
+  return (
+    <div className="relative">
+      <div
+        className="leading-none tabular-nums"
+        style={{
+          fontFamily: "var(--font-exo2), system-ui, sans-serif",
+          fontWeight: 800,
+          fontSize: "6rem",
+          letterSpacing: "-0.045em",
+          color: PALETTE.Crimson,
+          backgroundImage: CRIMSON_GRADIENT,
+          WebkitBackgroundClip: "text",
+          backgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          textShadow: [
+            "0 1px 0 rgba(255,255,255,0.20)",
+            "0 0 32px rgba(236,79,61,0.45)",
+            "0 16px 40px rgba(0,0,0,0.55)",
+          ].join(", "),
+          fontVariantNumeric: "tabular-nums",
+          ...fadeIn(0),
+        }}
+      >
+        {rollResult !== null ? String(rollResult) : ""}
+      </div>
+
+      <div
+        aria-hidden
+        style={{
+          marginTop: "0.55rem",
+          marginBottom: "1.2rem",
+          width: "2.5rem",
+          height: "2px",
+          background:
+            "linear-gradient(90deg, rgba(236,79,61,0.95) 0%, rgba(236,79,61,0) 100%)",
+          boxShadow: "0 0 14px rgba(236,79,61,0.5)",
+          ...fadeIn(120),
+        }}
+      />
+
+      <p
+        style={{
+          fontFamily: "var(--font-ibm-plex-sans), system-ui, sans-serif",
+          fontWeight: 500,
+          fontSize: "0.98rem",
+          lineHeight: 1.5,
+          letterSpacing: "0.005em",
+          color: "#E6E8EE",
+          textShadow: "0 4px 16px rgba(0,0,0,0.7)",
+          margin: 0,
+          ...fadeIn(240),
+        }}
+      >
+        {outcome?.story.map((f, i) =>
+          f.tone ? (
+            <Emphasis key={i} tone={f.tone}>
+              {f.text}
+            </Emphasis>
+          ) : (
+            <span key={i}>{f.text}</span>
+          )
+        )}
+      </p>
+
+      <p
+        style={{
+          marginTop: "1rem",
+          paddingLeft: "0.85rem",
+          borderLeft: "2px solid rgba(236,79,61,0.55)",
+          fontFamily: "var(--font-ibm-plex-sans), system-ui, sans-serif",
+          fontWeight: 400,
+          fontStyle: "italic",
+          fontSize: "0.92rem",
+          lineHeight: 1.45,
+          letterSpacing: "0.005em",
+          color: "rgba(230,232,238,0.86)",
+          textShadow: "0 4px 14px rgba(0,0,0,0.6)",
+          boxShadow: "-12px 0 24px -16px rgba(236,79,61,0.4)",
+          ...fadeIn(420),
+        }}
+      >
         {outcome?.reaction.map((f, i) =>
           f.tone ? (
             <Emphasis key={i} tone={f.tone}>
