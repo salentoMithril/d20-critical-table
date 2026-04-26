@@ -423,7 +423,7 @@ function RollSection() {
       <div
         ref={mobileScrollRef}
         data-internal-scroll
-        className="sm:hidden absolute inset-0 overflow-y-auto overscroll-contain"
+        className="sm:hidden absolute inset-0 overflow-y-auto overscroll-none"
         style={{ WebkitOverflowScrolling: "touch" } as CSSProperties}
       >
         <div className="relative px-6 pt-14 pb-[17rem] flex flex-col gap-6">
@@ -911,11 +911,11 @@ function PartyTitle() {
           4 satelliti si vedono bene (vedi globals.css). */}
       <div
         aria-hidden
-        className="party-top-scrim sm:hidden absolute inset-x-0 top-0 h-[34vh] pointer-events-none"
+        className="party-top-scrim sm:hidden absolute inset-x-0 top-0 h-[34dvh] pointer-events-none"
       />
       <div
         aria-hidden
-        className="party-bottom-scrim sm:hidden absolute inset-x-0 bottom-0 h-[28vh] pointer-events-none"
+        className="party-bottom-scrim sm:hidden absolute inset-x-0 bottom-0 h-[28dvh] pointer-events-none"
       />
 
       <div className="relative z-10 h-full flex flex-col items-center px-8 pt-16 sm:pt-20 md:pt-24 pb-5">

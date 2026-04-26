@@ -26,7 +26,7 @@ export default function Home() {
         {SECTIONS.map((_, i) => (
           <section
             key={i}
-            className="h-screen w-full pointer-events-auto"
+            className="h-dvh w-full pointer-events-auto"
             aria-label={`Section ${i + 1}`}
           />
         ))}

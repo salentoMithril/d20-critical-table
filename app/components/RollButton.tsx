@@ -265,7 +265,7 @@ export default function RollButton() {
         <div
           ref={mobileResultScrollRef}
           data-internal-scroll
-          className="absolute inset-0 overflow-y-auto overscroll-contain"
+          className="absolute inset-0 overflow-y-auto overscroll-none"
           style={{
             background:
               "linear-gradient(to left, rgba(17,19,24,0.80) 0%, rgba(17,19,24,0.65) 35%, rgba(17,19,24,0.22) 75%, rgba(17,19,24,0) 100%)",

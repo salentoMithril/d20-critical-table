@@ -195,7 +195,7 @@ export default function SnapPager({
       <div
         className="will-change-transform h-full"
         style={{
-          transform: `translate3d(0, -${active * 100}vh, 0)`,
+          transform: `translate3d(0, -${active * 100}dvh, 0)`,
           transition: `transform ${TRANSITION_MS}ms cubic-bezier(0.7, 0, 0.2, 1)`,
         }}
       >

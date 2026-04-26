@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Exo_2, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -28,6 +28,17 @@ const ibmPlexSans = IBM_Plex_Sans({
 export const metadata: Metadata = {
   title: "D20 — Edition Crimson",
   description: "A scroll-driven twenty-sided die.",
+};
+
+// `viewport-fit: cover` permette al canvas di estendersi fino ai bordi
+// (notch / safe area) invece di lasciare cornici. `themeColor` colora la
+// chrome del browser/sistema in tinta col fondo Onyx, così quando la barra
+// del telefono entra/esce non c'è il flash bianco di stacco visivo.
+export const viewport: Viewport = {
+  themeColor: "#111318",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
