@@ -70,6 +70,40 @@ function drawTitleBar(ctx) {
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText('CriticalTable', x + 22, y + h / 2 + 1);
+
+  // Costo di mana sulla destra: cerchio grigio (radial gradient) con un
+  // "4" nero in grassetto. Volutamente grande perché alla scala a cui la
+  // carta viene renderizzata in scena (~30% di altezza viewport) un pip
+  // di radius 22 risultava illeggibile.
+  const r = 32;
+  const cx = x + w - r - 14;
+  const cy = y + h / 2;
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.45)';
+  ctx.shadowBlur = 5;
+  ctx.shadowOffsetY = 2;
+  const g = ctx.createRadialGradient(cx - r * 0.35, cy - r * 0.35, r * 0.15, cx, cy, r);
+  g.addColorStop(0, '#e8e8e6');
+  g.addColorStop(0.55, '#9a9a96');
+  g.addColorStop(1, '#5c5c58');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font = 'bold 40px "Trajan Pro", "Cinzel", "Times New Roman", serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('4', cx, cy + 2);
 }
 
 function drawArtWindow(ctx) {
@@ -158,7 +192,7 @@ function drawTextBox(ctx) {
   drawTapSymbol(ctx, x + padX + symbolSize / 2, lineY, symbolSize / 2);
 
   ctx.fillStyle = '#1c1c1c';
-  ctx.font = '24px "Garamond", "Georgia", serif';
+  ctx.font = 'bold 28px "Garamond", "Georgia", serif';
   ctx.textBaseline = 'middle';
   ctx.textAlign = 'left';
   ctx.fillText(':', x + padX + symbolSize + 6, lineY + 1);
@@ -166,8 +200,8 @@ function drawTextBox(ctx) {
   const effect = 'Passa una bella serata con i tuoi nuovi amici!';
   const textX = x + padX + symbolSize + 24;
   const textW = w - (textX - x) - padX;
-  wrapText(ctx, effect, textX, lineY - 8, textW, 30, {
-    font: 'italic 24px "Garamond", "Georgia", serif',
+  wrapText(ctx, effect, textX, lineY - 10, textW, 32, {
+    font: 'italic bold 27px "Garamond", "Georgia", serif',
     color: '#1c1c1c',
   });
 
@@ -186,8 +220,8 @@ function drawTextBox(ctx) {
     x + padX,
     sepY + 20,
     w - padX * 2,
-    26,
-    { font: 'italic 20px "Garamond", "Georgia", serif', color: '#2a2a2a' }
+    28,
+    { font: 'italic bold 23px "Garamond", "Georgia", serif', color: '#2a2a2a' }
   );
 }
 

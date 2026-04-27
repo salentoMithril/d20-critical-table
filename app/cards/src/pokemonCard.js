@@ -249,9 +249,9 @@ function drawAttack(ctx) {
     xL + 6,
     rowY + eR * 2 + 18,
     xR - xL - 12,
-    24,
+    28,
     {
-      font: 'bold 21px "Times New Roman", Georgia, serif',
+      font: 'bold 24px "Times New Roman", Georgia, serif',
       color: '#1a1a1a',
     }
   );

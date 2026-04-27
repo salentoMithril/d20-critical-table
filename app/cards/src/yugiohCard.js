@@ -210,7 +210,7 @@ function drawEffectBox(ctx) {
   ctx.save();
   ctx.fillStyle = '#0a0a0a';
   ctx.font =
-    'bold 20px "ITC Stone Serif", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif';
+    'bold 23px "ITC Stone Serif", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif';
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
   ctx.fillText('[ Spell Card / Continuous ]', x + padX, y + 14);
@@ -219,9 +219,9 @@ function drawEffectBox(ctx) {
   // Effect text — black, dense serif, below the type line.
   const effect = 'Hai portato le pizze e le birre, sei il top!';
 
-  wrapText(ctx, effect, x + padX, y + 50, w - padX * 2, 25, {
+  wrapText(ctx, effect, x + padX, y + 56, w - padX * 2, 28, {
     font:
-      '18px "ITC Stone Serif", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif',
+      'bold 22px "ITC Stone Serif", "Palatino Linotype", "Book Antiqua", "Times New Roman", serif',
     color: '#0a0a0a',
   });
 }
