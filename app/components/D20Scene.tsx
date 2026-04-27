@@ -151,14 +151,68 @@ const Q_X90 = new THREE.Quaternion().setFromAxisAngle(
   Math.PI / 2
 );
 
+// Desktop-only hover: il media query `(hover: hover) and (pointer: fine)`
+// esclude touch e device dove l'hover è simulato/non affidabile.
+function useDesktopHoverCapable(): boolean {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const update = () => setEnabled(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return enabled;
+}
+
+// Sezioni in cui l'hover sul dado è attivo (desktop).
+const HOVER_ACTIVE_SECTIONS: ReadonlySet<number> = new Set([0, 1]);
+const HOVER_EXTRA_SPIN = 1.2;     // rad/s aggiunti alla deriva Y mentre in hover
+const HOVER_PULSE_HZ = 0.9;       // pulsazione scala ~0.9 Hz
+const HOVER_PULSE_AMP = 0.025;    // ±2.5% sulla scala base — sussulto, non rimbalzo
+const HOVER_ENV_LAMBDA = 4.0;     // ~250ms per entrare/uscire dall'hover
+
 function D20() {
   const { scene } = useGLTF("/d20.glb");
   const cloned = useMemo(() => cloneSceneWithMaterials(scene), [scene]);
   const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
 
   const rollResult = useSceneState((s) => s.rollResult);
   const variantId = useSceneState((s) => s.variantId);
   const [faceQuats, setFaceQuats] = useState<FaceQuats | null>(null);
+
+  const isDesktopHover = useDesktopHoverCapable();
+  const hoveredRef = useRef(false);
+  const hoverEnvRef = useRef(0);
+  const hoverYOffsetRef = useRef(0);
+  const baseScaleRef = useRef(MAIN_SCALE_DEFAULT);
+  // Cursore in pixel; null se uscito dal viewport. Il raycast effettivo
+  // avviene in useFrame (cap a frame-rate, niente lavoro per ogni mousemove).
+  const cursorRef = useRef<{ x: number; y: number } | null>(null);
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const ndc = useMemo(() => new THREE.Vector2(), []);
+
+  // Listener su window perché il wrapper del Canvas è `pointer-events-none`
+  // (gli overlay del SnapPager devono restare cliccabili sopra la scena).
+  // pointermove arriva comunque a livello document, indipendentemente da
+  // pointer-events sui sotto-alberi.
+  useEffect(() => {
+    if (!isDesktopHover) return;
+    const onMove = (e: PointerEvent) => {
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const onLeave = () => {
+      cursorRef.current = null;
+      hoveredRef.current = false;
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointerleave", onLeave, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerleave", onLeave);
+    };
+  }, [isDesktopHover]);
 
   // Stato dell'animazione di lancio. Si arma sul fronte di rollResult
   // (transizione null→N o cambio di N) e si resetta su resetRoll().
@@ -260,9 +314,38 @@ function D20() {
 
     const pose = POSES[active] ?? POSES[0];
 
+    // Hover envelope: 0..1, sale solo se in sezione abilitata + desktop.
+    // L'envelope è usato come moltiplicatore continuo per spin extra e pulsazione,
+    // così entrata/uscita sono morbide e non c'è bisogno di stati discreti.
+    const canHover = isDesktopHover && HOVER_ACTIVE_SECTIONS.has(active);
+    if (canHover && cursorRef.current) {
+      // Raycast manuale: il Canvas ha pointer-events:none → R3F non riceve
+      // eventi di hover. Tracciamo noi un raggio dal cursore e contiamo come
+      // hover qualsiasi intersezione col gruppo del dado.
+      ndc.x = (cursorRef.current.x / window.innerWidth) * 2 - 1;
+      ndc.y = -(cursorRef.current.y / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      hoveredRef.current = raycaster.intersectObject(g, true).length > 0;
+    } else if (!canHover) {
+      hoveredRef.current = false;
+    }
+    const targetEnv = canHover && hoveredRef.current ? 1 : 0;
+    hoverEnvRef.current = THREE.MathUtils.damp(
+      hoverEnvRef.current,
+      targetEnv,
+      HOVER_ENV_LAMBDA,
+      delta
+    );
+    const env = hoverEnvRef.current;
+
+    // Spin extra: si accumula in un offset cumulativo sommato a pose.ry, così
+    // quando l'env decade non c'è uno scatto all'indietro — il dado mantiene
+    // l'angolo guadagnato e la deriva normale riparte da lì.
+    hoverYOffsetRef.current += HOVER_EXTRA_SPIN * env * delta;
+
     // Ambient drift: continua quando si è fermi su una sezione
     const targetX = pose.rx + Math.sin(t * 0.45) * 0.025;
-    const targetY = pose.ry + t * 0.08;
+    const targetY = pose.ry + t * 0.08 + hoverYOffsetRef.current;
     const targetZ = pose.rz;
 
     g.rotation.x = THREE.MathUtils.damp(g.rotation.x, targetX, DAMP_LAMBDA, delta);
@@ -276,10 +359,17 @@ function D20() {
 
     g.position.y = Math.sin(t * 0.7) * 0.045;
 
-    // Scale: si rimpicciolisce in sezione 5 per il "party shot".
-    const targetScale = mainScaleFor(active);
-    const newScale = THREE.MathUtils.damp(g.scale.x, targetScale, DAMP_LAMBDA, delta);
-    g.scale.setScalar(newScale);
+    // Scale: damping sulla base (per le transizioni di sezione), poi pulsazione
+    // sovrapposta direttamente — la pulsazione viene già modulata da `env`,
+    // quindi evita un ulteriore filtro che la appiattirebbe.
+    baseScaleRef.current = THREE.MathUtils.damp(
+      baseScaleRef.current,
+      mainScaleFor(active),
+      DAMP_LAMBDA,
+      delta
+    );
+    const pulse = Math.sin(t * Math.PI * 2 * HOVER_PULSE_HZ) * HOVER_PULSE_AMP * env;
+    g.scale.setScalar(baseScaleRef.current * (1 + pulse));
   });
 
   return (
