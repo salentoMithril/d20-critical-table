@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CriticalTable — Carta 3D</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background: radial-gradient(ellipse at center, #1c1f26 0%, #06070a 100%);
+        font-family: system-ui, sans-serif;
+        color: #aaa;
+      }
+      #app { width: 100vw; height: 100vh; display: block; }
+      #hint {
+        position: fixed;
+        bottom: 12px;
+        left: 0; right: 0;
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.55;
+        pointer-events: none;
+        letter-spacing: 0.05em;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="app"></canvas>
+    <div id="hint">trascina per ruotare · scorri per zoomare · doppio click per girare la carta</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
